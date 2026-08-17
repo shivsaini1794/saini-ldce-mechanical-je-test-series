@@ -16,14 +16,13 @@ function MockTest({ questions, testName, onFinish }) {
     }, 1000);
 
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
   const selectAnswer = (option) => {
-    setAnswers({
-      ...answers,
+    setAnswers((prev) => ({
+      ...prev,
       [currentQuestion]: option,
-    });
+    }));
   };
 
   const nextQuestion = () => {
@@ -51,26 +50,21 @@ function MockTest({ questions, testName, onFinish }) {
       }
     });
 
-    onFinish(score);
+    onFinish(score, answers);
   };
 
   if (!questions || questions.length === 0) {
     return (
-      <div style={{ padding: "30px", maxWidth: "700px", margin: "auto", textAlign: "center" }}>
+      <div style={{ padding: "30px", textAlign: "center" }}>
         <h2>⚠️ Is Mock Test me questions available nahi hain.</h2>
-        <p>Admin Panel me questions ko kisi Mock Test se assign karke dobara try karein.</p>
       </div>
     );
   }
 
   const q = questions[currentQuestion];
-  if (!q || !Array.isArray(q.options)) {
-    return <div style={{ padding: "30px", textAlign: "center" }}><h2>⚠️ Question data invalid hai.</h2></div>;
-  }
 
   return (
     <div style={{ padding: "20px", maxWidth: "900px", margin: "auto" }}>
-
       <h2>📝 {testName || "Mock Test"}</h2>
 
       <div
@@ -81,7 +75,6 @@ function MockTest({ questions, testName, onFinish }) {
           borderRadius: "8px",
           textAlign: "center",
           marginBottom: "15px",
-          fontWeight: "bold",
         }}
       >
         ⏰ Time Left : {Math.floor(timeLeft / 60)} :
@@ -111,7 +104,6 @@ function MockTest({ questions, testName, onFinish }) {
               color: currentQuestion === index ? "white" : "black",
               border: "none",
               borderRadius: "5px",
-              cursor: "pointer",
             }}
           >
             {index + 1}
@@ -144,13 +136,14 @@ function MockTest({ questions, testName, onFinish }) {
                 : "black",
             border: "none",
             borderRadius: "8px",
-            cursor: "pointer",
+            textAlign: "left",
           }}
         >
           {option}
         </button>
       ))}
-            <div
+
+      <div
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -160,10 +153,7 @@ function MockTest({ questions, testName, onFinish }) {
         <button
           onClick={previousQuestion}
           disabled={currentQuestion === 0}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-          }}
+          style={{ padding: "10px 20px" }}
         >
           ⬅ Previous
         </button>
@@ -177,7 +167,6 @@ function MockTest({ questions, testName, onFinish }) {
               color: "white",
               border: "none",
               borderRadius: "5px",
-              cursor: "pointer",
             }}
           >
             ✅ Finish Test
@@ -191,14 +180,12 @@ function MockTest({ questions, testName, onFinish }) {
               color: "white",
               border: "none",
               borderRadius: "5px",
-              cursor: "pointer",
             }}
           >
             Next ➡
           </button>
         )}
       </div>
-
     </div>
   );
 }
