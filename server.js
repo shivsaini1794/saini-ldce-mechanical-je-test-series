@@ -92,6 +92,6 @@ app.get("/{*splat}", (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`LDCE App + Backend running on port ${PORT}`);
 });
