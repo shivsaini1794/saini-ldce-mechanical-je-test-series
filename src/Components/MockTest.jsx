@@ -16,7 +16,7 @@ function MockTest({ questions, testName, onFinish }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, finishTest]);
 
   const selectAnswer = (option) => {
     setAnswers((prev) => ({
