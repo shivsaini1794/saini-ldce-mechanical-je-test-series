@@ -1,10 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 function MockTest({ questions, testName, onFinish }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(90 * 60);
+const finishTest = useCallback(() => {
+  let score = 0;
 
+  questions.forEach((q, index) => {
+    if (answers[index] === q.answer) {
+      score++;
+    }
+  });
+
+  onFinish(score, answers);
+}, [questions, answers, onFinish]);
   useEffect(() => {
     if (timeLeft <= 0) {
       finishTest();
@@ -41,17 +51,7 @@ function MockTest({ questions, testName, onFinish }) {
     setCurrentQuestion(index);
   };
 
-  const finishTest = () => {
-    let score = 0;
-
-    questions.forEach((q, index) => {
-      if (answers[index] === q.answer) {
-        score++;
-      }
-    });
-
-    onFinish(score, answers);
-  };
+ 
 
   if (!questions || questions.length === 0) {
     return (
