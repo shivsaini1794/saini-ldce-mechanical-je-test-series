@@ -1,4 +1,4 @@
-function Home({ onStartTest, onLogin, onBuyPremium, isPremium }) {
+function Home({ onStartTest, onLogin, isPremium }) {
   const premiumClick = () => {
     if (isPremium) {
       alert("✅ Premium Feature Open");
@@ -43,7 +43,7 @@ function Home({ onStartTest, onLogin, onBuyPremium, isPremium }) {
       </a>
 
       <button
-        onClick={onBuyPremium}
+        onClick={onLogin}
         style={{
           margin: "10px",
           padding: "12px 18px",

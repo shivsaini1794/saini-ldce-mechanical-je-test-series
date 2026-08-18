@@ -14,7 +14,18 @@ function Dashboard({
   onOpenAdmin,
 }) {
   const [mockTests, setMockTests] = useState([]);
+useEffect(() => {
+  if (window.Razorpay) return;
 
+  const script = document.createElement("script");
+  script.src = "https://checkout.razorpay.com/v1/checkout.js";
+  script.async = true;
+  document.body.appendChild(script);
+
+  return () => {
+    document.body.removeChild(script);
+  };
+}, []);
   useEffect(() => {
     const loadTests = async () => {
       try {

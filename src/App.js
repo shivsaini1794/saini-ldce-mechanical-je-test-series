@@ -27,104 +27,6 @@ function App() {
   const [currentTestName, setCurrentTestName] = useState("free");
 
   const startMockTest = () => setShowLogin(true);
-const buyPremium = async () => {
-  if (!user) {
-    setShowLogin(true);
-    return;
-  }
-
-  try {
-    const scriptLoaded = await new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-
-    if (!scriptLoaded) {
-      alert("❌ Razorpay load nahi ho pa raha.");
-      return;
-    }
-
-    const response = await fetch(
-      "YOUR_BACKEND_URL/create-order",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.uid,
-        }),
-      }
-    );
-
-    const order = await response.json();
-
-    if (!response.ok || !order.id) {
-      alert("❌ Order create nahi ho paaya.");
-      return;
-    }
-
-    const options = {
-      key: "YOUR_RAZORPAY_KEY_ID",
-      amount: order.amount,
-      currency: "INR",
-      name: "SAINI LDCE MECHANICAL JE",
-      description: "Premium Test Series",
-      order_id: order.id,
-
-      handler: async function (paymentResponse) {
-        try {
-          const verifyResponse = await fetch(
-            "YOUR_BACKEND_URL/verify-payment",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(paymentResponse),
-            }
-          );
-
-          const result = await verifyResponse.json();
-
-          if (result.verified) {
-            alert("🎉 Payment Successful! Premium Activated.");
-
-            setIsPremium(true);
-          } else {
-            alert("❌ Payment verification failed.");
-          }
-        } catch (error) {
-          console.error(error);
-          alert("❌ Payment verification error.");
-        }
-      },
-
-      prefill: {
-        name: user.displayName || "",
-        email: user.email || "",
-      },
-
-      theme: {
-        color: "#1976d2",
-      },
-    };
-
-    const razorpay = new window.Razorpay(options);
-    razorpay.open();
-  } catch (error) {
-    console.error("Premium payment error:", error);
-    alert("❌ Payment start nahi ho paaya.");
-  }
-};
   const loadQuestionsFromFirebase = async (testName) => {
     try {
       setQuestionLoadError("");
@@ -244,7 +146,6 @@ createdAt: new Date().toISOString(),
   <Home
     onStartTest={startMockTest}
     onLogin={() => setShowLogin(true)}
-    onBuyPremium={buyPremium}
     isPremium={isPremium}
   />
 )}
