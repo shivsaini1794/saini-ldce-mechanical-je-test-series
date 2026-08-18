@@ -1,5 +1,5 @@
 import axios from "axios";
-import { doc, updateDoc, collection, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
 const ADMIN_EMAIL = "shivsaini1794@gmail.com";
@@ -59,7 +59,7 @@ function Dashboard({
           try {
             const verify = await axios.post(`${backendUrl}/verify-payment`, response, { headers: { Authorization: `Bearer ${token}` } });
             if (!verify.data.verified) throw new Error("Payment verification failed");
-            await updateDoc(doc(db, "users", user.uid), { premium: true, premiumActivatedAt: new Date().toISOString(), razorpayPaymentId: response.razorpay_payment_id });
+           
             alert("🎉 Premium Activated");
             window.location.reload();
           } catch (e) {
