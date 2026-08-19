@@ -2,53 +2,161 @@ const express = require("express");
 const cors = require("cors");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const admin = require("firebase-admin");
 require("dotenv").config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+function getFirebaseCredential() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+    return admin.credential.cert(serviceAccount);
+  }
+
+  throw new Error("Firebase Admin credentials missing");
+}
+
+admin.initializeApp({
+  credential: getFirebaseCredential(),
+});
+
+const db = admin.firestore();
+const firebaseAuth = admin.auth();
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-app.get("/", (req, res) => res.send("LDCE Backend Running 🚀"));
-
-app.post("/create-order", async (req, res) => {
+async function requireAuth(req, res, next) {
   try {
-    const options = {
-      amount: Number(process.env.PREMIUM_AMOUNT || 199) * 100,
+    const header = req.headers.authorization || "";
+
+    if (!header.startsWith("Bearer ")) {
+      return res.status(401).json({
+        verified: false,
+        message: "Login required",
+      });
+    }
+
+    const token = header.substring(7);
+    req.firebaseUser = await firebaseAuth.verifyIdToken(token);
+    next();
+  } catch (error) {
+    console.error("Auth verification failed:", error.message);
+    return res.status(401).json({
+      verified: false,
+      message: "Login required",
+    });
+  }
+}
+
+app.get("/", (req, res) => {
+  res.send("LDCE Backend Running 🚀");
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    firebaseAdmin: true
+  });
+});
+
+app.post("/create-order", requireAuth, async (req, res) => {
+  try {
+    const amount = Math.round(
+      Number(process.env.PREMIUM_AMOUNT || 199) * 100
+    );
+
+    const order = await razorpay.orders.create({
+      amount,
       currency: "INR",
       receipt: "LDCE_" + Date.now(),
-      notes: { userId: req.body?.userId || "" },
-    };
-    const order = await razorpay.orders.create(options);
+      notes: {
+        userId: req.firebaseUser.uid,
+      },
+    });
+
     res.json(order);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Order create failed" });
+    console.error("Order create failed:", error);
+    res.status(500).json({
+      success: false,
+      message: "Order create failed",
+    });
   }
 });
 
-app.post("/verify-payment", async (req, res) => {
+app.post("/verify-payment", requireAuth, async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body || {};
+
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({ verified: false, message: "Payment response incomplete" });
+      return res.status(400).json({
+        verified: false,
+        message: "Payment response incomplete",
+      });
     }
+
     const expected = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
-    const verified = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature));
-    if (!verified) return res.status(400).json({ verified: false });
-    res.json({ verified: true });
+
+    const expectedBuffer = Buffer.from(expected);
+    const signatureBuffer = Buffer.from(razorpay_signature);
+
+    if (
+      expectedBuffer.length !== signatureBuffer.length ||
+      !crypto.timingSafeEqual(expectedBuffer, signatureBuffer)
+    ) {
+      return res.status(400).json({
+        verified: false,
+        message: "Invalid payment signature",
+      });
+    }
+
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+
+    if (order.notes?.userId !== req.firebaseUser.uid) {
+      return res.status(403).json({
+        verified: false,
+        message: "Order user mismatch",
+      });
+    }
+
+    await db.collection("users").doc(req.firebaseUser.uid).set(
+      {
+        premium: true,
+        premiumActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastPaymentId: razorpay_payment_id,
+        lastOrderId: razorpay_order_id,
+      },
+      { merge: true }
+    );
+
+    res.json({
+      verified: true,
+      premium: true,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ verified: false });
+    console.error("Payment verification failed:", error);
+    res.status(500).json({
+      verified: false,
+      message: "Payment verification failed",
+    });
   }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
