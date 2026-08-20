@@ -10,8 +10,8 @@ app.use(cors());
 app.use(express.json());
 
 function getFirebaseCredential() {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  if ((process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT)) {
+    const serviceAccount = JSON.parse((process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT));
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
     return admin.credential.cert(serviceAccount);
   }
