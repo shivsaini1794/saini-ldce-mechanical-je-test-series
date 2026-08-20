@@ -1,13 +1,8 @@
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
-import { auth, provider } from "../firebase";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider, db } from "../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../firebase";
-import { useState } from "react";
 
 function Login({ onSuccess }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
   const googleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
@@ -27,35 +22,8 @@ function Login({ onSuccess }) {
 
       onSuccess(user);
     } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  const emailLogin = async () => {
-    try {
-      const result = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      const user = result.user;
-
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          name: "Razorpay Test User",
-          email: user.email,
-          premium: false,
-          createdAt: new Date().toISOString()
-        });
-      }
-
-      onSuccess(user);
-    } catch (error) {
-      alert("Login failed: " + error.message);
+      console.error("Google Login Error:", error);
+      alert(error.message || "Google Login failed");
     }
   };
 
@@ -66,9 +34,6 @@ function Login({ onSuccess }) {
       <button onClick={googleLogin}>
         Continue with Google
       </button>
-
-      <br /><br />
-
     </div>
   );
 }
