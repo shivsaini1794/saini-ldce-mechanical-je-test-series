@@ -69,31 +69,6 @@ function Login({ onSuccess }) {
 
       <br /><br />
 
-      <h3>Razorpay Test Login</h3>
-
-      <input
-        type="email"
-        placeholder="Test Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{ padding: "10px", margin: "5px" }}
-      />
-
-      <br />
-
-      <input
-        type="password"
-        placeholder="Test Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        style={{ padding: "10px", margin: "5px" }}
-      />
-
-      <br />
-
-      <button onClick={emailLogin}>
-        Login for Razorpay Test
-      </button>
     </div>
   );
 }
