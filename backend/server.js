@@ -2,7 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
-const admin = require("firebase-admin");
+const { initializeApp, cert } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
 require("dotenv").config();
 
 const app = express();
@@ -10,21 +12,29 @@ app.use(cors());
 app.use(express.json());
 
 function getFirebaseCredential() {
-  if ((process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT)) {
-    const serviceAccount = JSON.parse((process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT));
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
-    return admin.credential.cert(serviceAccount);
+  const raw =
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON ||
+    process.env.FIREBASE_SERVICE_ACCOUNT;
+
+  if (!raw) {
+    throw new Error("Firebase Admin credentials missing");
   }
 
-  throw new Error("Firebase Admin credentials missing");
+  const serviceAccount = JSON.parse(raw);
+
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
+
+  return cert(serviceAccount);
 }
 
-admin.initializeApp({
+initializeApp({
   credential: getFirebaseCredential(),
 });
 
-const db = admin.firestore();
-const firebaseAuth = admin.auth();
+const db = getFirestore();
+const firebaseAuth = getAuth();
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -61,7 +71,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
-    firebaseAdmin: true
+    firebaseAdmin: true,
   });
 });
 
@@ -135,7 +145,7 @@ app.post("/verify-payment", requireAuth, async (req, res) => {
     await db.collection("users").doc(req.firebaseUser.uid).set(
       {
         premium: true,
-        premiumActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        premiumActivatedAt: FieldValue.serverTimestamp(),
         lastPaymentId: razorpay_payment_id,
         lastOrderId: razorpay_order_id,
       },
